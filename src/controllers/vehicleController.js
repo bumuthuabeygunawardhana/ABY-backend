@@ -77,3 +77,72 @@ export const registerVehicle = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+/** ------------------- VIEW CATEGORIES ------------------- **/
+export const getVehicleCategories = async (req, res) => {
+  try {
+    const categories = await Vehicle.distinct("category");
+    res.status(200).json(categories);
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+/** ------------------- VIEW VEHICLES BY CATEGORY ------------------- **/
+export const getVehiclesByCategory = async (req, res) => {
+  try {
+    const { category } = req.params;
+    const vehicles = await Vehicle.find({ category }).select("name photos");
+    res.status(200).json(vehicles);
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+/** ------------------- VIEW VEHICLE DETAILS ------------------- **/
+export const getVehicleById = async (req, res) => {
+  try {
+    const vehicle = await Vehicle.findById(req.params.id);
+    if (!vehicle) return res.status(404).json({ message: "Vehicle not found" });
+    res.status(200).json(vehicle);
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+/** ------------------- UPDATE VEHICLE ------------------- **/
+export const updateVehicle = async (req, res) => {
+  try {
+    const updates = req.body;
+
+    // handle new photos if uploaded
+    if (req.files && req.files.length > 0) {
+      const photoUrls = await Promise.all(
+        req.files.map(file => uploadBufferToCloudinary(file.buffer, file.mimetype))
+      );
+      updates.photos = photoUrls;
+    }
+
+    const vehicle = await Vehicle.findByIdAndUpdate(req.params.id, updates, {
+      new: true,
+      runValidators: true
+    });
+
+    if (!vehicle) return res.status(404).json({ message: "Vehicle not found" });
+
+    res.status(200).json({ message: "Vehicle updated successfully", vehicle });
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+/** ------------------- DELETE VEHICLE ------------------- **/
+export const deleteVehicle = async (req, res) => {
+  try {
+    const vehicle = await Vehicle.findByIdAndDelete(req.params.id);
+    if (!vehicle) return res.status(404).json({ message: "Vehicle not found" });
+
+    res.status(200).json({ message: "Vehicle deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
