@@ -5,11 +5,12 @@ import sendEmail from "../utils/sendEmail.js";
 import crypto from "crypto";
 
 // Generate JWT token
-const generateToken = (id, role) => {
-  return jwt.sign({ id, role }, process.env.JWT_SECRET, {
+const generateToken = (id, role, email) => {
+  return jwt.sign({ id, role, email }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN
   });
 };
+
 
 // @desc    Register user
 export const registerUser = async (req, res) => {
@@ -30,7 +31,7 @@ export const registerUser = async (req, res) => {
 
     res.status(201).json({
       message: "User registered successfully",
-      token: generateToken(user._id, user.role)
+      token: generateToken(user._id, user.role, user.email)
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -58,7 +59,7 @@ export const loginUser = async (req, res) => {
     // Return token
     res.status(200).json({
       message: "Login successful",
-      token: generateToken(user._id, user.role)
+      token: generateToken(user._id, user.role, user.email)
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
