@@ -12,6 +12,13 @@ const vehicleSchema = new mongoose.Schema({
     enum: ["bike", "tuk-tuk", "car", "van", "bus", "luxury-car"],
     required: true
   },
+
+  vehicleNumber: {
+    type: String,
+    required: true,
+    unique: true,   // ensures no duplicates
+    trim: true
+  },
   photos: {
     type: [String], // Cloudinary URLs
     validate: v => Array.isArray(v) && v.length > 0
