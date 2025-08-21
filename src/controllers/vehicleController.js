@@ -24,6 +24,7 @@ export const registerVehicle = async (req, res) => {
     const {
       name,
       category,
+      vehicleNumber,
       pricePerDay,
       dailyMileageLimit,
       pricePerExtraMile,
@@ -36,7 +37,7 @@ export const registerVehicle = async (req, res) => {
       transmission
     } = req.body;
 
-    if (!name || !category || !pricePerDay || !dailyMileageLimit || !pricePerExtraMile ||
+    if (!name || !category || !vehicleNumber || !pricePerDay || !dailyMileageLimit || !pricePerExtraMile ||
         !minRentalDays || !maxRentalDays || !fuelType || !serviceType ||
         !seats || !doors || !transmission) {
       return res.status(400).json({ message: "Missing required fields" });
@@ -54,6 +55,7 @@ export const registerVehicle = async (req, res) => {
     const vehicle = await Vehicle.create({
       name,
       category,
+      vehicleNumber,
       photos: photoUrls,
       pricePerDay: Number(pricePerDay),
       dailyMileageLimit: Number(dailyMileageLimit),
@@ -65,7 +67,7 @@ export const registerVehicle = async (req, res) => {
       seats: Number(seats),
       doors: Number(doors),
       transmission,
-      createdBy: req.user._id
+      createdBy: req.user.id
     });
 
     res.status(201).json({
