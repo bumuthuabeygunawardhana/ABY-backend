@@ -107,6 +107,22 @@ export const bookVehicle = async (req, res) => {
       totalPrice,
     });
 
+    //  Emit socket event (safe and optional)
+    try {
+      const io = req.app.get("io");
+      if (io) {
+        io.emit("vehicleBooked", {
+          vehicleId,
+          pickupDate: pickup.toISOString(),
+          returnDate: drop.toISOString(),
+          bookingId: newBooking._id
+        });
+      }
+    } catch (emitErr) {
+      console.error("Socket emit error:", emitErr);
+      // Do not break booking if emit fails
+    }
+
     res.json({ message: "Booking successful", booking: newBooking });
   } catch (error) {
     res.status(500).json({ message: error.message });
