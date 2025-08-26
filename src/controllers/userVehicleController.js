@@ -54,17 +54,20 @@ export const getVehicleDetails = async (req, res) => {
     if (!vehicle) return res.status(404).json({ message: "Vehicle not found" });
 
     let totalPrice = null;
+    let deposit = null;
     if (pickupDate && returnDate) {
       const pickup = new Date(pickupDate);
       const drop = new Date(returnDate);
 
       const days = Math.ceil((drop - pickup) / (1000 * 60 * 60 * 24));
       totalPrice = days * vehicle.pricePerDay;
+      deposit = +(totalPrice * 0.15).toFixed(2);
     }
 
     res.json({
       ...vehicle.toObject(), // include all vehicle details
       totalPrice, // show calculated price if dates were provided
+      deposit,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
