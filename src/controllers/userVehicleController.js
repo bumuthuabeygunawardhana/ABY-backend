@@ -54,17 +54,20 @@ export const getVehicleDetails = async (req, res) => {
     if (!vehicle) return res.status(404).json({ message: "Vehicle not found" });
 
     let totalPrice = null;
+    let deposit = null;
     if (pickupDate && returnDate) {
       const pickup = new Date(pickupDate);
       const drop = new Date(returnDate);
 
       const days = Math.ceil((drop - pickup) / (1000 * 60 * 60 * 24));
       totalPrice = days * vehicle.pricePerDay;
+      deposit = +(totalPrice * 0.15).toFixed(2);
     }
 
     res.json({
       ...vehicle.toObject(), // include all vehicle details
       totalPrice, // show calculated price if dates were provided
+      deposit,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -73,7 +76,7 @@ export const getVehicleDetails = async (req, res) => {
 
 
 // 3. Book vehicle
-export const bookVehicle = async (req, res) => {
+{/*export const bookVehicle = async (req, res) => {
   try {
     const { pickupDate, returnDate } = req.body;
     const vehicleId = req.params.id;
@@ -107,7 +110,98 @@ export const bookVehicle = async (req, res) => {
       totalPrice,
     });
 
+    //  Emit socket event (safe and optional)
+    try {
+      const io = req.app.get("io");
+      if (io) {
+        io.emit("vehicleBooked", {
+          vehicleId,
+          pickupDate: pickup.toISOString(),
+          returnDate: drop.toISOString(),
+          bookingId: newBooking._id
+        });
+      }
+    } catch (emitErr) {
+      console.error("Socket emit error:", emitErr);
+      // Do not break booking if emit fails
+    }
+
     res.json({ message: "Booking successful", booking: newBooking });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+}; */}
+
+// 4. Get user bookings
+export const getUserBookings = async (req, res) => {
+  try {
+    const bookings = await Booking.find({ user: req.user.id })
+      .populate("vehicle", "name photos") // only name & photos
+      .sort({ pickupDate: -1 });
+
+    const formatted = bookings.map(b => ({
+      _id: b._id,
+      vehicleName: b.vehicle?.name,
+      vehiclePhoto: b.vehicle?.photos[0], // first photo
+      pickupDate: b.pickupDate,
+      returnDate: b.returnDate,
+      totalPrice: b.totalPrice
+    }));
+
+    res.json(formatted);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// 5. Update booking (edit)
+export const updateBooking = async (req, res) => {
+  try {
+    const { pickupDate, returnDate } = req.body;
+    const bookingId = req.params.id;
+
+    const booking = await Booking.findOne({ _id: bookingId, user: req.user.id });
+    if (!booking) return res.status(404).json({ message: "Booking not found" });
+
+    const pickup = new Date(pickupDate);
+    const drop = new Date(returnDate);
+
+    // check if vehicle already booked for new dates
+    const bookingExists = await Booking.findOne({
+      _id: { $ne: bookingId }, // exclude current booking
+      vehicle: booking.vehicle,
+      $or: [{ pickupDate: { $lte: drop }, returnDate: { $gte: pickup } }],
+    });
+
+    if (bookingExists) {
+      return res.status(400).json({ message: "Vehicle not available for new dates" });
+    }
+
+    const days = Math.ceil((drop - pickup) / (1000 * 60 * 60 * 24));
+    const vehicle = await Vehicle.findById(booking.vehicle);
+    booking.pickupDate = pickup;
+    booking.returnDate = drop;
+    booking.totalPrice = days * vehicle.pricePerDay;
+
+    await booking.save();
+
+    res.json({ message: "Booking updated", booking });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// 6. Delete booking
+export const deleteBooking = async (req, res) => {
+  try {
+    const booking = await Booking.findOneAndDelete({
+      _id: req.params.id,
+      user: req.user.id,
+    });
+
+    if (!booking) return res.status(404).json({ message: "Booking not found" });
+
+    res.json({ message: "Booking deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
