@@ -1,5 +1,5 @@
 import express from "express";
-import { registerUser,verifyOtp,loginUser, forgotPassword, resetPassword } from "../controllers/authController.js";
+import { registerUser,verifyOtp,loginUser, forgotPassword, resetPassword, googleLogin } from "../controllers/authController.js";
 import { protect, adminOnly } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
@@ -7,6 +7,7 @@ const router = express.Router();
 router.post("/signup", registerUser);
 router.post("/verify-otp", verifyOtp); 
 router.post("/login", loginUser);
+router.post("/google/login", googleLogin);
 router.post("/forgot-password",forgotPassword);
 router.put("/reset-password/:token", resetPassword);
 
