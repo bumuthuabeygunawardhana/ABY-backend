@@ -218,11 +218,25 @@ export const forgotPassword = async (req, res) => {
     const resetToken = user.getResetPasswordToken();
     await user.save({ validateBeforeSave: false });
 
-    const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
-    const message = `You requested a password reset.\n\nReset here:\n${resetUrl}\n\nIf you did not request this, ignore this email.`;
+    //const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+    const message = `
+You requested a password reset for your Bayhill account.
+
+Your Reset Token: ${resetToken}
+
+Instructions:
+1. Open your Bayhill mobile app
+2. Go to "Forgot Password" 
+3. Enter this token when prompted
+4. Set your new password
+
+This token will expire in 10 minutes.
+
+If you did not request this, please ignore this email.
+    `;
 
     try {
-      await sendEmail({ email: user.email, subject: "Password Reset Request", message });
+      await sendEmail({ email: user.email, subject: "Password Reset token", message });
       res.status(200).json({ success: true, message: "Reset email sent" });
     } catch (err) {
       user.resetPasswordToken = undefined;

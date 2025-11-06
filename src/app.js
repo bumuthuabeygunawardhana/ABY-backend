@@ -11,9 +11,16 @@ dotenv.config();
 connectDB();
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: [
+    "http://localhost:5173",         // Admin web app (React)
+    "http://localhost:8081",         // Expo web preview
+    "exp://192.168.207.50:8081"        // Expo Go mobile app (replace IP with your own)
+  ],
+  credentials: true
+}));
 
-// 👉 Stripe webhook BEFORE json parser:
+//  Stripe webhook BEFORE json parser:
 app.post("/api/payments/webhook", express.raw({ type: "application/json" }), stripeWebhook);
 
 // Regular JSON parsing for the rest
