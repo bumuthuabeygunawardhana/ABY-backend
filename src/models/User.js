@@ -13,24 +13,43 @@ const userSchema = new mongoose.Schema({
     required: [true, "Please enter your email"],
     unique: true
   },
+
+  // ⬇️ CHANGED: password is only required for local (email/password) users
   password: {
     type: String,
-    required: [true, "Please enter your password"],
     minlength: 6,
-    select: false
+    select: false,
+    required: function () {
+      // require password only if this user is not a Google-only account
+      return !this.googleId;
+    }
   },
+
   role: {
     type: String,
     enum: ["user", "admin"],
     default: "user"
   },
+
+  // ⬇️ ADDED: Google Sign-In fields
+  googleId: { type: String, unique: true, sparse: true }, // sparse lets nulls coexist
+  picture: String, // optional profile photo from Google
+
+  // OTP verification (your existing flow)
+  otp: String,
+  otpExpiry: Date,
+  isVerified: {
+    type: Boolean,
+    default: false
+  },
+
   resetPasswordToken: String,
   resetPasswordExpire: Date
 }, { timestamps: true });
 
-// Hash password before save
+// Hash password before save (skips if no password / unchanged)
 userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
+  if (!this.isModified("password") || !this.password) return next();
   this.password = await bcrypt.hash(this.password, 10);
   next();
 });
@@ -50,13 +69,8 @@ userSchema.methods.getSignedJwtToken = function () {
 // Generate and hash password token
 userSchema.methods.getResetPasswordToken = function () {
   const resetToken = crypto.randomBytes(20).toString("hex");
-
-  // Hash token and set to resetPasswordToken
   this.resetPasswordToken = crypto.createHash("sha256").update(resetToken).digest("hex");
-
-  // Set expire time (10 min)
   this.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
-
   return resetToken;
 };
 
